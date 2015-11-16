@@ -5,10 +5,12 @@ import (
 	"encoding/gob"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"os/signal"
 	"runtime"
 	"runtime/pprof"
+	"time"
 )
 
 func init() {
@@ -78,6 +80,23 @@ func intToDst(i int) int {
 		dst += ri * ri
 	}
 	return dst
+}
+
+func countSrcs(n Nodes, nn Node) int {
+	c := 1
+	for _, si := range nn.Srcs {
+		c += countSrcs(n, n[si])
+	}
+	return c
+}
+
+func isInSet(n Nodes, i int) bool {
+	for _, nn := range n {
+		if nn.Num == i {
+			return true
+		}
+	}
+	return false
 }
 
 func createNodes() Nodes {
@@ -197,16 +216,26 @@ func totalLevels(n Nodes, loops []Nodes) int {
 	return levels
 }
 
-var drawCountCh = make(chan struct{})
+var drawCountCh = make(chan int)
 
 // this is started in its own go-routine in init
 func drawCounter() {
+	maxLevel := 0
+	levelm := map[int]int{}
 	total := 0
-	for _ = range drawCountCh {
+	for level := range drawCountCh {
+		if level > maxLevel {
+			maxLevel = level
+		}
+		levelm[level]++
 		total++
-		if total%0x100 == 0 {
+		if total%0x1000 == 0 {
 			log.Printf("drawn: %06X", total)
 		}
+	}
+
+	for i := 1; i <= maxLevel; i++ {
+		log.Printf("level %d -> %d", i, levelm[i])
 	}
 }
 
@@ -218,20 +247,28 @@ func drawNode(cmd drawNodeCmd) {
 		end:   cmd.end,
 	}
 	cmd.i.drawCurve(c)
-	drawCountCh <- struct{}{}
+	drawCountCh <- cmd.level
+
+	srcCounts := make([]int, len(cmd.nn.Srcs))
+	srcTotal := 0
+	for i, sni := range cmd.nn.Srcs {
+		if isInSet(cmd.excluding, sni) {
+			continue
+		}
+		c := countSrcs(cmd.n, cmd.n[sni])
+		srcCounts[i] = c
+		srcTotal += c
+	}
 
 	diff := cmd.end - cmd.start
-	fract := (1 / float64(len(cmd.nn.Srcs))) * diff
-outerLoop:
-	for _, sni := range cmd.nn.Srcs {
+	for i, sni := range cmd.nn.Srcs {
 		sn := cmd.n[sni]
 
-		//log.Printf("checking excluding: %v", cmd.excluding)
-		for _, en := range cmd.excluding {
-			if en.Num == sni {
-				continue outerLoop
-			}
+		if isInSet(cmd.excluding, sni) {
+			continue
 		}
+
+		fract := (float64(srcCounts[i]) / float64(srcTotal)) * diff
 
 		drawNode(drawNodeCmd{
 			n:         cmd.n,
@@ -268,10 +305,29 @@ func drawNodeSpin() {
 }
 
 func drawLoop(n Nodes, i img, loop Nodes, level int) []drawNodeCmd {
+	// We do this this way instead of just doing a countSrcs on each loop node
+	// directly because we don't want to actually include the count from one of
+	// the loop nodes
+	srcTotal := 0
+	srcCounts := make([]int, len(loop))
+	for j, ln := range loop {
+		for _, sni := range ln.Srcs {
+			if isInSet(loop, sni) {
+				continue
+			}
+			c := countSrcs(n, n[sni])
+			srcCounts[j] += c
+			srcTotal += c
+		}
+	}
+
 	ret := make([]drawNodeCmd, 0, len(loop))
-	fract := 1 / float64(len(loop))
 	start := float64(0)
-	for _, ln := range loop {
+	for j, ln := range loop {
+		fract := float64(srcCounts[j]) / float64(srcTotal)
+		if math.IsNaN(fract) {
+			fract = 1
+		}
 		cmd := drawNodeCmd{
 			n:         n,
 			i:         i.copyBlank(),
@@ -309,25 +365,30 @@ func profileCPU() {
 
 func main() {
 
-	j := newImg("test.png", 400, 400, 5)
-	j.drawCurve(curve{
-		level: 4,
-		color: 0xFF0000,
-		start: 0, end: 0.5,
-	})
-	j.drawCurve(curve{
-		level: 3,
-		color: 0x0000FF,
-		start: 0.5, end: 1,
-	})
-	j.drawCurve(curve{
-		level: 2,
-		color: 0x00FF00,
-		start: 0.25, end: 0.75,
-	})
-	j.save()
+	//j := newImg("test.png", 400, 400, 50)
+	//j.drawCurve(curve{
+	//	level: 4,
+	//	color: 0xFF0000,
+	//	start: 0, end: 0.5,
+	//})
+	//j.drawCurve(curve{
+	//	level: 3,
+	//	color: 0x0000FF,
+	//	start: 0.5, end: 1,
+	//})
+	//j.drawCurve(curve{
+	//	level: 2,
+	//	color: 0x00FF00,
+	//	start: 0.25, end: 0.75,
+	//})
+	//j.drawCurve(curve{
+	//	level: 1,
+	//	color: 0xFFFF00,
+	//	start: 0, end: 0.66,
+	//})
+	//j.save()
 
-	return
+	//return
 
 	//log.Print("creating nodes")
 	//nodes := createNodes()
@@ -357,16 +418,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	levels := totalLevels(nodes, loops)
+	levels := totalLevels(nodes, loops) + 1 // plus 1 because we start on level 1
 	log.Printf("totalLevels: %d", levels)
 
 	profileCPU()
 
 	w, h := 1000, 1000
-	imgName := fmt.Sprintf("happy-tree-%d-%d.png", w, h)
+	imgName := fmt.Sprintf("happy-tree.png")
 
 	i := newImg(imgName, w, h, levels)
-	level := 0
+	level := 1
 	var promises []drawNodeCmd
 	for _, loop := range loops {
 		promises = append(promises, drawLoop(nodes, i, loop, level)...)
@@ -378,8 +439,12 @@ func main() {
 		<-cmd.done
 		i.cat(cmd.i)
 	}
+	close(drawCountCh)
 
 	if err := i.save(); err != nil {
 		log.Fatal(err)
 	}
+
+	// Wait a second for other threads to finish logging and stuff
+	time.Sleep(1 * time.Second)
 }
