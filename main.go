@@ -8,18 +8,11 @@ import (
 	"math"
 	"os"
 	"os/signal"
-	"runtime"
 	"runtime/pprof"
-	"time"
 )
 
 func init() {
-	runtime.GOMAXPROCS(runtime.NumCPU() + 1)
-	gob.Register(Node{})
 	go drawCounter()
-	for i := 0; i < runtime.NumCPU(); i++ {
-		go drawNodeSpin()
-	}
 }
 
 const (
@@ -216,70 +209,52 @@ func totalLevels(n Nodes, loops []Nodes) int {
 	return levels
 }
 
-var drawCountCh = make(chan int)
+var drawCountCh = make(chan bool)
 
 // this is started in its own go-routine in init
 func drawCounter() {
-	maxLevel := 0
-	levelm := map[int]int{}
 	total := 0
-	for level := range drawCountCh {
-		if level > maxLevel {
-			maxLevel = level
-		}
-		levelm[level]++
+	for _ = range drawCountCh {
 		total++
 		if total%0x1000 == 0 {
 			log.Printf("drawn: %06X", total)
 		}
 	}
-
-	for i := 1; i <= maxLevel; i++ {
-		log.Printf("level %d -> %d", i, levelm[i])
-	}
 }
 
-func drawNode(cmd drawNodeCmd) {
+func drawNode(n Nodes, i img, nn Node, excluding Nodes, level int, start, end float64) {
 	c := curve{
-		level: cmd.level,
-		color: cmd.nn.Num,
-		start: cmd.start,
-		end:   cmd.end,
+		level: level,
+		color: nn.Num,
+		start: start,
+		end:   end,
 	}
-	cmd.i.drawCurve(c)
-	drawCountCh <- cmd.level
+	i.drawCurve(c)
+	drawCountCh <- true
 
-	srcCounts := make([]int, len(cmd.nn.Srcs))
+	srcCounts := make([]int, len(nn.Srcs))
 	srcTotal := 0
-	for i, sni := range cmd.nn.Srcs {
-		if isInSet(cmd.excluding, sni) {
+	for j, sni := range nn.Srcs {
+		if isInSet(excluding, sni) {
 			continue
 		}
-		c := countSrcs(cmd.n, cmd.n[sni])
-		srcCounts[i] = c
+		c := countSrcs(n, n[sni])
+		srcCounts[j] = c
 		srcTotal += c
 	}
 
-	diff := cmd.end - cmd.start
-	for i, sni := range cmd.nn.Srcs {
-		sn := cmd.n[sni]
+	diff := end - start
+	for j, sni := range nn.Srcs {
+		sn := n[sni]
 
-		if isInSet(cmd.excluding, sni) {
+		if isInSet(excluding, sni) {
 			continue
 		}
 
-		fract := (float64(srcCounts[i]) / float64(srcTotal)) * diff
+		fract := (float64(srcCounts[j]) / float64(srcTotal)) * diff
 
-		drawNode(drawNodeCmd{
-			n:         cmd.n,
-			i:         cmd.i,
-			nn:        sn,
-			excluding: nil,
-			level:     cmd.level + 1,
-			start:     cmd.start,
-			end:       cmd.start + fract,
-		})
-		cmd.start += fract
+		drawNode(n, i, sn, nil, level+1, start, start+fract)
+		start += fract
 	}
 }
 
@@ -293,18 +268,7 @@ type drawNodeCmd struct {
 	done       chan struct{}
 }
 
-var drawNodeCh = make(chan drawNodeCmd)
-
-// multiple of these will be started by init
-func drawNodeSpin() {
-	for cmd := range drawNodeCh {
-		log.Printf("drawNodeSpin got %v", cmd.nn)
-		drawNode(cmd)
-		close(cmd.done)
-	}
-}
-
-func drawLoop(n Nodes, i img, loop Nodes, level int) []drawNodeCmd {
+func drawLoop(n Nodes, i img, loop Nodes, level int) {
 	// We do this this way instead of just doing a countSrcs on each loop node
 	// directly because we don't want to actually include the count from one of
 	// the loop nodes
@@ -321,28 +285,15 @@ func drawLoop(n Nodes, i img, loop Nodes, level int) []drawNodeCmd {
 		}
 	}
 
-	ret := make([]drawNodeCmd, 0, len(loop))
 	start := float64(0)
 	for j, ln := range loop {
 		fract := float64(srcCounts[j]) / float64(srcTotal)
 		if math.IsNaN(fract) {
 			fract = 1
 		}
-		cmd := drawNodeCmd{
-			n:         n,
-			i:         i.copyBlank(),
-			nn:        ln,
-			excluding: loop,
-			level:     level,
-			start:     start,
-			end:       start + fract,
-			done:      make(chan struct{}),
-		}
-		drawNodeCh <- cmd
-		ret = append(ret, cmd)
+		drawNode(n, i, ln, loop, level, start, start+fract)
 		start += fract
 	}
-	return ret
 }
 
 func profileCPU() {
@@ -423,28 +374,15 @@ func main() {
 
 	profileCPU()
 
-	w, h := 1000, 1000
-	imgName := fmt.Sprintf("happy-tree.png")
-
-	i := newImg(imgName, w, h, levels)
+	i := newImg("happy-tree.png", 1000, 1000, levels)
 	level := 1
-	var promises []drawNodeCmd
 	for _, loop := range loops {
-		promises = append(promises, drawLoop(nodes, i, loop, level)...)
+		drawLoop(nodes, i, loop, level)
 		level += loopLevels(nodes, loop)
 		level++
 	}
 
-	for _, cmd := range promises {
-		<-cmd.done
-		i.cat(cmd.i)
-	}
-	close(drawCountCh)
-
 	if err := i.save(); err != nil {
 		log.Fatal(err)
 	}
-
-	// Wait a second for other threads to finish logging and stuff
-	time.Sleep(1 * time.Second)
 }

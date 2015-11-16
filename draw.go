@@ -55,39 +55,6 @@ type curve struct {
 	start, end float64
 }
 
-//func (c *curve) ColorModel() color.Model {
-//	return color.AlphaModel
-//}
-//
-//func (c *curve) Bounds() image.Rectangle {
-//	r := (c.level + 1) * c.levelWidth
-//	return image.Rect(c.x-r, c.y-r, c.x+r, c.y+r)
-//}
-//
-//func (c *curve) At(x, y int) color.Color {
-//	rIn := float64(c.level * c.levelWidth)
-//	rOut := float64((c.level + 1) * c.levelWidth)
-//	xx, yy := float64(x-c.x)+0.5, float64(y-c.y)+0.5
-//	if xxyy := xx*xx + yy*yy; xxyy > rOut*rOut || xxyy < rIn*rIn {
-//		return color.Alpha{0}
-//	}
-//
-//	angle := math.Atan2(yy, xx)
-//	if angle < 0 {
-//		angle += 2 * math.Pi
-//	}
-//	angle /= 2 * math.Pi
-//
-//	if c.end == 0 {
-//		c.end = 1
-//	}
-//	if angle < c.start || angle > c.end {
-//		return color.Alpha{0}
-//	}
-//
-//	return color.Alpha{255}
-//}
-
 func (i img) drawCurve(c curve) {
 	red := byte((c.color >> 16))
 	green := byte((c.color >> 8))
@@ -105,17 +72,6 @@ func (i img) drawCurve(c curve) {
 	)
 	i.ctx.ArcTo(i.centerX, i.centerY, radius, radius, startAngle, angle)
 	i.ctx.Stroke()
-}
-
-func (i img) cat(i2 img) {
-	draw.Draw(i.rgba, i.rgba.Bounds(), i2.rgba, image.ZP, draw.Over)
-}
-
-func (i img) copyBlank() img {
-	i2 := i
-	i2.rgba = image.NewRGBA(image.Rect(0, 0, i.w, i.h))
-	i2.ctx = draw2dimg.NewGraphicContext(i2.rgba)
-	return i2
 }
 
 func (i img) save() error {
