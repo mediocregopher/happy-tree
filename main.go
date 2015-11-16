@@ -316,7 +316,12 @@ func profileCPU() {
 
 func main() {
 
-	//j := newImg("test.png", 400, 400, 50)
+	//j := newImg("test.png", 1000, 1000, 6)
+	//j.drawCurve(curve{
+	//	level: 5,
+	//	color: 0xFF00ff,
+	//	start: 0, end: 1,
+	//})
 	//j.drawCurve(curve{
 	//	level: 4,
 	//	color: 0xFF0000,

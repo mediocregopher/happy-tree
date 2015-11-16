@@ -9,7 +9,6 @@ import (
 	"math"
 	"os"
 
-	"github.com/llgcode/draw2d"
 	"github.com/llgcode/draw2d/draw2dimg"
 )
 
@@ -62,16 +61,30 @@ func (i img) drawCurve(c curve) {
 
 	startAngle := c.start * 2 * math.Pi
 	angle := (c.end - c.start) * 2 * math.Pi
+	endAngle := startAngle + angle
 	radius := float64(c.level * i.levelWidth)
-	i.ctx.SetStrokeColor(color.RGBA{red, green, blue, 0xFF})
-	i.ctx.SetLineWidth(float64(i.levelWidth))
-	i.ctx.SetLineCap(draw2d.SquareCap)
+	radiusOuter := radius + float64(i.levelWidth)
+	i.ctx.SetStrokeColor(color.RGBA{0, 0, 0, 0})
+	i.ctx.SetFillColor(color.RGBA{red, green, blue, 0xFF})
+
 	i.ctx.MoveTo(
 		i.centerX+math.Cos(startAngle)*radius,
 		i.centerY+math.Sin(startAngle)*radius,
 	)
 	i.ctx.ArcTo(i.centerX, i.centerY, radius, radius, startAngle, angle)
-	i.ctx.Stroke()
+
+	i.ctx.LineTo(
+		i.centerX+math.Cos(endAngle)*radiusOuter,
+		i.centerY+math.Sin(endAngle)*radiusOuter,
+	)
+	i.ctx.ArcTo(i.centerX, i.centerY, radiusOuter, radiusOuter, endAngle, -angle)
+
+	i.ctx.LineTo(
+		i.centerX+math.Cos(startAngle)*radius,
+		i.centerY+math.Sin(startAngle)*radius,
+	)
+
+	i.ctx.FillStroke()
 }
 
 func (i img) save() error {
