@@ -30,7 +30,7 @@ func newImg(filename string, w, h, levels int) img {
 	}
 
 	if levelWidth < 1 {
-		log.Panicf("level width is too small! %f", levelWidth)
+		log.Fatalf("level width is too small! %f", levelWidth)
 	}
 
 	rgba := image.NewRGBA(image.Rect(0, 0, w, h))

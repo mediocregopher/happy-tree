@@ -65,14 +65,21 @@ var charToDec = map[rune]int{
 	'F': 15,
 }
 
-func intToDst(i int) int {
-	s := fmt.Sprintf("%06X", i)
+func happify(i int) int {
+	s := fmt.Sprintf("%X", i)
 	dst := 0
 	for _, r := range s {
 		ri := charToDec[r]
 		dst += ri * ri
 	}
 	return dst
+}
+
+func happifyColor(i int) int {
+	r := happify(i & 0xFF0000)
+	g := happify(i & 0x00FF00)
+	b := happify(i & 0x0000FF)
+	return ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF)
 }
 
 func countSrcs(n Nodes, nn Node) int {
@@ -95,7 +102,7 @@ func isInSet(n Nodes, i int) bool {
 func createNodes() Nodes {
 	n := make(Nodes, numNodes)
 	for i := range n {
-		dst := intToDst(i)
+		dst := happifyColor(i)
 		n[i].Num = i
 		n[i].Dst = dst
 		n[dst].Srcs = append(n[dst].Srcs, i)
@@ -131,11 +138,9 @@ func findLoops(n Nodes) []Nodes {
 outerLoop:
 	for i := 0; i < numNodes; i++ {
 		// If i is part of any of the loops found so far, don't bother
-		for _, loop := range loops {
-			for _, ln := range loop {
-				if ln.Num == i {
-					continue outerLoop
-				}
+		for i := range loops {
+			if isInSet(loop, i) {
+				continue outerLoop
 			}
 		}
 
@@ -148,9 +153,6 @@ outerLoop:
 }
 
 func maybeLoop(n Nodes, i int, loop Nodes) Nodes {
-	if i%0x1000 == 0 {
-		log.Printf("maybeLoop: %06X", i)
-	}
 	origI := i
 	for {
 		loop = append(loop, n[i])
@@ -315,7 +317,6 @@ func profileCPU() {
 }
 
 func main() {
-
 	//j := newImg("test.png", 1000, 1000, 6)
 	//j.drawCurve(curve{
 	//	level: 5,
@@ -346,40 +347,43 @@ func main() {
 
 	//return
 
-	//log.Print("creating nodes")
-	//nodes := createNodes()
+	log.Print("creating nodes")
+	nodes := createNodes()
 
-	//log.Print("storing nodes")
-	//if err := store(&nodes, nodesFile); err != nil {
-	//	log.Fatal(err)
-	//}
-
-	log.Print("loading in nodes")
-	var nodes Nodes
-	if err := load(&nodes, nodesFile); err != nil {
+	log.Print("storing nodes")
+	if err := store(&nodes, nodesFile); err != nil {
 		log.Fatal(err)
 	}
 
-	//log.Print("finding loops")
-	//loops := findLoops(nodes)
-
-	//log.Printf("storing loops")
-	//if err := store(&loops, loopsFile); err != nil {
+	//log.Print("loading in nodes")
+	//var nodes Nodes
+	//if err := load(&nodes, nodesFile); err != nil {
 	//	log.Fatal(err)
 	//}
 
-	log.Print("loading in loops")
-	var loops []Nodes
-	if err := load(&loops, loopsFile); err != nil {
+	log.Print("finding loops")
+	loops := findLoops(nodes)
+
+	log.Printf("storing loops")
+	if err := store(&loops, loopsFile); err != nil {
 		log.Fatal(err)
 	}
+
+	//log.Print("loading in loops")
+	//var loops []Nodes
+	//if err := load(&loops, loopsFile); err != nil {
+	//	log.Fatal(err)
+	//}
+
+	log.Printf("loops: %v", loops)
+	log.Printf("total loops: %d", len(loops))
 
 	levels := totalLevels(nodes, loops) + 1 // plus 1 because we start on level 1
 	log.Printf("totalLevels: %d", levels)
 
 	profileCPU()
 
-	i := newImg("happy-tree.png", 1000, 1000, levels)
+	i := newImg("happy-tree.png", 5000, 5000, levels)
 	level := 1
 	for _, loop := range loops {
 		drawLoop(nodes, i, loop, level)
