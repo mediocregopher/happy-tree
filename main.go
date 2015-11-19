@@ -174,6 +174,22 @@ func maybeLoop(n Nodes, i int, loop Nodes) Nodes {
 	return loop
 }
 
+func dedupLoops(loops []Nodes) []Nodes {
+	found := map[int]bool{}
+	ret := make([]Nodes, 0, len(loops))
+outer:
+	for _, loop := range loops {
+		for _, n := range loop {
+			if found[n.Num] {
+				continue outer
+			}
+			found[n.Num] = true
+		}
+		ret = append(ret, loop)
+	}
+	return ret
+}
+
 func nodeLevels(n Nodes, nn Node, excluding Nodes) int {
 	max := 0
 outerLoop:
@@ -206,7 +222,6 @@ func totalLevels(n Nodes, loops []Nodes) int {
 	levels := 0
 	for _, loop := range loops {
 		levels += loopLevels(n, loop)
-		levels++
 	}
 	return levels
 }
@@ -218,7 +233,7 @@ func drawCounter() {
 	total := 0
 	for _ = range drawCountCh {
 		total++
-		if total%0x1000 == 0 {
+		if total%0x10000 == 0 {
 			log.Printf("drawn: %06X", total)
 		}
 	}
@@ -347,33 +362,38 @@ func main() {
 
 	//return
 
-	log.Print("creating nodes")
-	nodes := createNodes()
+	//log.Print("creating nodes")
+	//nodes := createNodes()
+	//log.Printf("total nodes: %X", len(nodes))
 
-	log.Print("storing nodes")
-	if err := store(&nodes, nodesFile); err != nil {
-		log.Fatal(err)
-	}
-
-	//log.Print("loading in nodes")
-	//var nodes Nodes
-	//if err := load(&nodes, nodesFile); err != nil {
+	//log.Print("storing nodes")
+	//if err := store(&nodes, nodesFile); err != nil {
 	//	log.Fatal(err)
 	//}
 
-	log.Print("finding loops")
-	loops := findLoops(nodes)
-
-	log.Printf("storing loops")
-	if err := store(&loops, loopsFile); err != nil {
+	log.Print("loading in nodes")
+	var nodes Nodes
+	if err := load(&nodes, nodesFile); err != nil {
 		log.Fatal(err)
 	}
 
-	//log.Print("loading in loops")
-	//var loops []Nodes
-	//if err := load(&loops, loopsFile); err != nil {
+	//log.Print("finding loops")
+	//loops := findLoops(nodes)
+	//log.Printf("total loops (pr-dedup): %d", len(loops))
+
+	//log.Printf("deduplicating loops")
+	//loops = dedupLoops(loops)
+
+	//log.Printf("storing loops")
+	//if err := store(&loops, loopsFile); err != nil {
 	//	log.Fatal(err)
 	//}
+
+	log.Print("loading in loops")
+	var loops []Nodes
+	if err := load(&loops, loopsFile); err != nil {
+		log.Fatal(err)
+	}
 
 	log.Printf("loops: %v", loops)
 	log.Printf("total loops: %d", len(loops))
