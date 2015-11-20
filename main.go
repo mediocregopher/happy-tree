@@ -138,8 +138,8 @@ func findLoops(n Nodes) []Nodes {
 outerLoop:
 	for i := 0; i < numNodes; i++ {
 		// If i is part of any of the loops found so far, don't bother
-		for i := range loops {
-			if isInSet(loop, i) {
+		for _, prevLoop := range loops {
+			if isInSet(prevLoop, i) {
 				continue outerLoop
 			}
 		}
@@ -172,22 +172,6 @@ func maybeLoop(n Nodes, i int, loop Nodes) Nodes {
 	}
 
 	return loop
-}
-
-func dedupLoops(loops []Nodes) []Nodes {
-	found := map[int]bool{}
-	ret := make([]Nodes, 0, len(loops))
-outer:
-	for _, loop := range loops {
-		for _, n := range loop {
-			if found[n.Num] {
-				continue outer
-			}
-			found[n.Num] = true
-		}
-		ret = append(ret, loop)
-	}
-	return ret
 }
 
 func nodeLevels(n Nodes, nn Node, excluding Nodes) int {
@@ -332,6 +316,7 @@ func profileCPU() {
 }
 
 func main() {
+
 	//j := newImg("test.png", 1000, 1000, 6)
 	//j.drawCurve(curve{
 	//	level: 5,
@@ -379,10 +364,6 @@ func main() {
 
 	//log.Print("finding loops")
 	//loops := findLoops(nodes)
-	//log.Printf("total loops (pr-dedup): %d", len(loops))
-
-	//log.Printf("deduplicating loops")
-	//loops = dedupLoops(loops)
 
 	//log.Printf("storing loops")
 	//if err := store(&loops, loopsFile); err != nil {
