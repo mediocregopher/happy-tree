@@ -55,7 +55,7 @@ resulting image would be enormous and/or unreadable.
 I decided on using a hollow, multi-level pie-chart. Using the example
 of `000002`, it would look something like this:
 
-![An example of a partial multi-level pie chart](https://raw.githubusercontent.com/mediocregopher/happy-tree/master/img/partial.png)
+![An example of a partial multi-level pie chart](/img/partial.png)
 
 The inner arc represents the color `000002`. The second arc represents the 15
 different colors which happify into `000002`, each of them may also have their
@@ -81,7 +81,7 @@ slices taking up the end.
 
 My first attempt resulted in this image (click for 5000x5000 version):
 
-[![Result of first attempt](https://raw.githubusercontent.com/mediocregopher/happy-tree/master/img/happy-tree-blue-small.png)](https://raw.githubusercontent.com/mediocregopher/happy-tree/master/img/happy-tree-blue.png)
+[![Result of first attempt](/img/happy-tree-blue-small.png)](/img/happy-tree-blue.png)
 
 The first thing you'll notice is that it looks pretty neat.
 
@@ -133,7 +133,7 @@ I drop that 1 on the `1C2`, because it has no place in this system. Sorry 1.
 
 Simply replacing that function resulted in this image (click for 5000x5000) version:
 
-[![Result of second attempt](https://raw.githubusercontent.com/mediocregopher/happy-tree/master/img/happy-tree-colors-small.png)](https://raw.githubusercontent.com/mediocregopher/happy-tree/master/img/happy-tree-colors.png)
+[![Result of second attempt](/img/happy-tree-colors-small.png)](/img/happy-tree-colors.png)
 
 The first thing you notice is that it's so colorful! So that goal was achieved.
 
