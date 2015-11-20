@@ -22,11 +22,14 @@ type img struct {
 }
 
 func newImg(filename string, w, h, levels int) img {
+	// Leave a 5% buffer on the sides so that the image doesn't cut right up to
+	// the edge
+	bw, bh := float64(w)*0.95, float64(h)*0.95
 	var levelWidth float64
 	if w > h {
-		levelWidth = float64(h) / 2 / float64(levels)
+		levelWidth = bh / 2 / float64(levels)
 	} else {
-		levelWidth = float64(w) / 2 / float64(levels)
+		levelWidth = bw / 2 / float64(levels)
 	}
 
 	if levelWidth < 1 {
