@@ -11,7 +11,7 @@ hexadecimal numbers are colors, and colors graphically represent things nicely!
 
 ## Colors
 
-Colors to computers are represented using 3-bytes, representing red, green, and
+Colors to computers are represented using 3-bytes, encompassing red, green, and
 blue. Each byte is represented by two hexadecimal digits, and they are appended
 together. For example `FF0000` represents maximum red (`FF`) added to no green
 and no blue. `FF5500` represents maximum red (`FF`), some green (`55) and no
@@ -48,14 +48,14 @@ on every color from `000000` (black) to `FFFFFF` (white), so I will!
 
 So I know I can represent the tree using color, but there's more to decide on
 than that. The easy way to represent a tree would be to simply draw a literal
-tree graph, with a circle for each color with a line pointing to its parent and
+tree graph, with a circle for each color and lines pointing to its parent and
 children. But this is boring, and also if I want to represent *all* colors the
-resulting image would either be enormous or unreadable.
+resulting image would be enormous and/or unreadable.
 
 I decided on using a hollow, multi-level pie-chart. Using the example
 of `000002`, it would look something like this:
 
-![partial](https://raw.githubusercontent.com/mediocregopher/happy-tree/master/img/partial.png "An example of a partial multi-level pie chart")
+![An example of a partial multi-level pie chart](https://raw.githubusercontent.com/mediocregopher/happy-tree/master/img/partial.png)
 
 The inner arc represents the color `000002`. The second arc represents the 15
 different colors which happify into `000002`, each of them may also have their
@@ -67,19 +67,21 @@ melancoils of the hexadecimals to be placed around the happification tree
 easier to code than a circle/branch based tree diagram.
 
 An important feature I had to implement was proportional slice sizes. If I were
-to give each child of a color and equal size on that arc's edge (as I did in the
-above image) the image would simply not work. Some branches of the tree are
+to give each child of a color an equal size on that arc's edge the image would simply not work.
+Some branches of the tree are
 extremely deep, while others are very shallow. If all were given the same space,
 those deep branches wouldn't even be representable by a single pixel's width,
 and would simply fail to show up. So I implemented proportional slice sizes,
 where the size of every slice is determined to be proportional to how many total
-(recursively) children it has.
+(recursively) children it has. You can see this in the above example, where the
+second level arc is largely comprised of one giant slice, with many smaller
+slices taking up the end.
 
 ## First attempt
 
 My first attempt resulted in this image (click for 5000x5000 version):
 
-TODO iamge B here
+[![Result of first attempt](https://raw.githubusercontent.com/mediocregopher/happy-tree/master/img/happy-tree-blue-small.png)](https://raw.githubusercontent.com/mediocregopher/happy-tree/master/img/happy-tree-blue.png)
 
 The first thing you'll notice is that it looks pretty neat.
 
@@ -92,11 +94,12 @@ finally the melancoil, comprised of: `00000D`, `0000A9`, `0000B5`, `000092`,
 
 The final thing you'll notice (or maybe it was the first, since it's really
 obvious) is that it's very blue. Non-blue colors are really only represented as
-leaves on their trees, they don't ever really have any children of their own, so
+leaves on their trees and don't ever really have any children of their own, so
 the blue and black sections take up vastly more space.
 
 This makes sense. The number which should generate the largest happification
-result, `FFFFFF` only results in `000546`, which is primarily blue.
+result, `FFFFFF`, only results in `000546`, which is primarily blue. So in effect
+all colors happify to some shade of blue.
 
 This might have been it, technically this is the happification tree and the
 melancoil of 6 digit hexadecimal numbers represented as colors. But it's also
@@ -130,12 +133,12 @@ I drop that 1 on the `1C2`, because it has no place in this system. Sorry 1.
 
 Simply replacing that function resulted in this image (click for 5000x5000) version:
 
-TODO image c
+[![Result of second attempt](https://raw.githubusercontent.com/mediocregopher/happy-tree/master/img/happy-tree-colors-small.png)](https://raw.githubusercontent.com/mediocregopher/happy-tree/master/img/happy-tree-colors.png)
 
 The first thing you notice is that it's so colorful! So that goal was achieved.
 
 The second thing you notice is that there's *significantly* more melancoils.
-Thousands, even. I'll list out a couple of them here:
+Hundreds, even. I'll list out a couple of them here:
 
 ```
 00000D 0000A9 0000B5 000092 000055 000032
@@ -145,7 +148,7 @@ Thousands, even. I'll list out a couple of them here:
 ...
 ```
 
-And so on. You'll notice that those numbers are really the same numbers from the
+And so on. Those numbers are actually the same numbers from the
 melancoil in the first attempt. This make sense, since the happification
 algorithm didn't really change, just how we applied it, so the melancoil numbers
 didn't change, just where they appear. And they appear *a lot*. Every
