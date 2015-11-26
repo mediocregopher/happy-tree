@@ -65,21 +65,30 @@ var charToDec = map[rune]int{
 	'F': 15,
 }
 
+var power = 3
+
 func happify(i int) int {
 	s := fmt.Sprintf("%X", i)
 	dst := 0
 	for _, r := range s {
 		ri := charToDec[r]
-		dst += ri * ri
+		dst += int(math.Pow(float64(ri), float64(power)))
 	}
 	return dst
 }
 
 func happifyColor(i int) int {
-	r := happify(i & 0xFF0000)
-	g := happify(i & 0x00FF00)
-	b := happify(i & 0x0000FF)
-	return ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF)
+	//r := happify(i & 0xFF0000)
+	//g := happify(i & 0x00FF00)
+	//b := happify(i & 0x0000FF)
+	//return ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF)
+
+	for {
+		i = happify(i)
+		if i <= 0xFFFFFF {
+			return i
+		}
+	}
 }
 
 func countSrcs(n Nodes, nn Node) int {
@@ -137,14 +146,19 @@ func findLoops(n Nodes) []Nodes {
 	loop := make(Nodes, 0, 16)
 outerLoop:
 	for i := 0; i < numNodes; i++ {
+		if i%0x100 == 0 {
+			log.Printf("looking at %06X", i)
+		}
 		// If i is part of any of the loops found so far, don't bother
 		for _, prevLoop := range loops {
 			if isInSet(prevLoop, i) {
+				log.Printf("%06X is in another loop", i)
 				continue outerLoop
 			}
 		}
 
 		if rloop := maybeLoop(n, i, loop); len(rloop) > 0 {
+			log.Printf("%06X is a hit!", i)
 			loops = append(loops, rloop)
 			loop = make(Nodes, 0, 16)
 		}
@@ -347,52 +361,58 @@ func main() {
 
 	//return
 
-	//log.Print("creating nodes")
-	//nodes := createNodes()
-	//log.Printf("total nodes: %X", len(nodes))
+	for pow := 3; pow < 6; pow++ {
+		log.Printf("setting power to %d", pow)
+		power = pow
 
-	//log.Print("storing nodes")
-	//if err := store(&nodes, nodesFile); err != nil {
-	//	log.Fatal(err)
-	//}
+		log.Print("creating nodes")
+		nodes := createNodes()
+		log.Printf("total nodes: %X", len(nodes))
 
-	log.Print("loading in nodes")
-	var nodes Nodes
-	if err := load(&nodes, nodesFile); err != nil {
-		log.Fatal(err)
-	}
+		//log.Print("storing nodes")
+		//if err := store(&nodes, nodesFile); err != nil {
+		//	log.Fatal(err)
+		//}
 
-	//log.Print("finding loops")
-	//loops := findLoops(nodes)
+		//log.Print("loading in nodes")
+		//var nodes Nodes
+		//if err := load(&nodes, nodesFile); err != nil {
+		//	log.Fatal(err)
+		//}
 
-	//log.Printf("storing loops")
-	//if err := store(&loops, loopsFile); err != nil {
-	//	log.Fatal(err)
-	//}
+		log.Print("finding loops")
+		loops := findLoops(nodes)
 
-	log.Print("loading in loops")
-	var loops []Nodes
-	if err := load(&loops, loopsFile); err != nil {
-		log.Fatal(err)
-	}
+		//log.Printf("storing loops")
+		//if err := store(&loops, loopsFile); err != nil {
+		//	log.Fatal(err)
+		//}
 
-	log.Printf("loops: %v", loops)
-	log.Printf("total loops: %d", len(loops))
+		//log.Print("loading in loops")
+		//var loops []Nodes
+		//if err := load(&loops, loopsFile); err != nil {
+		//	log.Fatal(err)
+		//}
 
-	levels := totalLevels(nodes, loops) + 1 // plus 1 because we start on level 1
-	log.Printf("totalLevels: %d", levels)
+		log.Printf("loops: %v", loops)
+		log.Printf("total loops: %d", len(loops))
 
-	profileCPU()
+		levels := totalLevels(nodes, loops) + 1 // plus 1 because we start on level 1
+		log.Printf("totalLevels: %d", levels)
 
-	i := newImg("happy-tree.png", 5000, 5000, levels)
-	level := 1
-	for _, loop := range loops {
-		drawLoop(nodes, i, loop, level)
-		level += loopLevels(nodes, loop)
-		level++
-	}
+		profileCPU()
 
-	if err := i.save(); err != nil {
-		log.Fatal(err)
+		fileName := fmt.Sprintf("happy-tree-atmp3-pow%d.png", power)
+		i := newImg(fileName, 5000, 5000, levels)
+		level := 1
+		for _, loop := range loops {
+			drawLoop(nodes, i, loop, level)
+			level += loopLevels(nodes, loop)
+			level++
+		}
+
+		if err := i.save(); err != nil {
+			log.Fatal(err)
+		}
 	}
 }
