@@ -22,9 +22,9 @@ const (
 )
 
 type Node struct {
-	Num  int
-	Dst  int
-	Srcs []int
+	Num  uint64
+	Dst  uint64
+	Srcs []uint64
 }
 
 func (n Node) String() string {
@@ -67,17 +67,17 @@ var charToDec = map[rune]int{
 
 var power = 3
 
-func happify(i int) int {
+func happify(i uint64) uint64 {
 	s := fmt.Sprintf("%X", i)
-	dst := 0
+	var dst uint64
 	for _, r := range s {
 		ri := charToDec[r]
-		dst += int(math.Pow(float64(ri), float64(power)))
+		dst += uint64(math.Pow(float64(ri), float64(power)))
 	}
 	return dst
 }
 
-func happifyColor(i int) int {
+func happifyColor(i uint64) uint64 {
 	//r := happify(i & 0xFF0000)
 	//g := happify(i & 0x00FF00)
 	//b := happify(i & 0x0000FF)
@@ -99,7 +99,7 @@ func countSrcs(n Nodes, nn Node) int {
 	return c
 }
 
-func isInSet(n Nodes, i int) bool {
+func isInSet(n Nodes, i uint64) bool {
 	for _, nn := range n {
 		if nn.Num == i {
 			return true
@@ -110,7 +110,8 @@ func isInSet(n Nodes, i int) bool {
 
 func createNodes() Nodes {
 	n := make(Nodes, numNodes)
-	for i := range n {
+	for ii := range n {
+		i := uint64(ii)
 		dst := happifyColor(i)
 		n[i].Num = i
 		n[i].Dst = dst
@@ -145,7 +146,7 @@ func findLoops(n Nodes) []Nodes {
 	var loops []Nodes
 	loop := make(Nodes, 0, 16)
 outerLoop:
-	for i := 0; i < numNodes; i++ {
+	for i := uint64(0); i < numNodes; i++ {
 		if i%0x100 == 0 {
 			log.Printf("looking at %06X", i)
 		}
@@ -166,7 +167,7 @@ outerLoop:
 	return loops
 }
 
-func maybeLoop(n Nodes, i int, loop Nodes) Nodes {
+func maybeLoop(n Nodes, i uint64, loop Nodes) Nodes {
 	origI := i
 	for {
 		loop = append(loop, n[i])
@@ -361,9 +362,8 @@ func main() {
 
 	//return
 
-	for pow := 3; pow < 6; pow++ {
-		log.Printf("setting power to %d", pow)
-		power = pow
+	for power = 7; power <= 15; power++ {
+		log.Printf("setting power to %d", power)
 
 		log.Print("creating nodes")
 		nodes := createNodes()

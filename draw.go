@@ -53,7 +53,7 @@ func newImg(filename string, w, h, levels int) img {
 
 type curve struct {
 	level      int
-	color      int
+	color      uint64
 	start, end float64
 }
 
